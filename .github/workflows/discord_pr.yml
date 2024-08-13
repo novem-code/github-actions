@@ -51,7 +51,7 @@ jobs:
 
           REPO_NAME=$(echo $REPO_FULL_NAME | cut -d'/' -f2)
           MESSAGE=$(jq -n \
-            --arg repo "$REPO_NAME" \REPO_NAME
+            --arg repo "$REPO_NAME" \
             --arg number "$PR_NUMBER" \
             --arg title "$PR_TITLE" \
             --arg url "$PR_URL" \
