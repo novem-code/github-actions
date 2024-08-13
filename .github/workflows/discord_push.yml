@@ -1,0 +1,54 @@
+name: Discord Push Notification
+
+on:
+  workflow_call:
+    inputs:
+      branch_name:
+        description: 'Branch name'
+        type: string
+        required: false
+        default: 'main'
+      commit_message:
+        description: 'Commit message'
+        type: string
+        required: true
+      commit_url:
+        description: 'Commit URL'
+        type: string
+        required: true
+      repo_full_name:
+        description: 'Repo full name'
+        type: string
+        required: true
+    secrets:
+      discord_webhook:
+        description: 'The Discord webhook URL'
+        required: true
+
+
+jobs:
+  notify_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send push notification to Discord
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+          COMMIT_URL: ${{ inputs.commit_url }}
+          REPO_FULL_NAME: ${{ inputs.repo_full_name }}
+          DISCORD_WEBHOOK: ${{ secrets.discord_webhook }}
+        run: |
+          REPO_NAME=$(echo $REPO_FULL_NAME | cut -d'/' -f2)
+          COMMIT_TITLE="$(echo "$COMMIT_MESSAGE" | head -1)"
+          MESSAGE=$(jq -n \
+            --arg repo "$REPO_NAME" \
+            --arg branch_name "$BRANCH_NAME" \
+            --arg commit_title "$COMMIT_TITLE" \
+            --arg commit_url "$COMMIT_URL" \
+            '{content: "\($repo) > Direct push to \($branch_name): [\($commit_title)](\($commit_url))"}')
+
+          # Send the notification to Discord
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "$MESSAGE" \
+            "$DISCORD_WEBHOOK"
