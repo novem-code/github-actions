@@ -1,0 +1,65 @@
+name: Discord PR Notification
+
+on:
+  workflow_call:
+    inputs:
+      pr_title:
+        description: 'PR title'
+        type: string
+        required: true
+      pr_number:
+        description: 'PR number'
+        type: string
+        required: true
+      pr_url:
+        description: 'PR URL'
+        type: string
+        required: true
+      repo_full_name:
+        description: 'Repo full name'
+        type: string
+        required: true
+    secrets:
+      discord_webhook:
+        description: 'Discord webhook URL'
+        required: true
+
+
+jobs:
+  notify_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send PR notification to Discord
+        env:
+          PR_TITLE: ${{ inputs.pr_title }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_URL: ${{ inputs.pr_url }}
+          REPO_FULL_NAME: ${{ inputs.repo_full_name }}
+          DISCORD_WEBHOOK: ${{ secrets.discord_webhook }}
+        run: |
+          # Determine the message based on the event type
+          if [[ "${{ github.event.action }}" == "opened" ]]; then
+            ACTION_TEXT="has been opened. Please review!"
+          elif [[ "${{ github.event.action }}" == "synchronize" ]]; then
+            ACTION_TEXT="has been updated!"
+          elif [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            ACTION_TEXT="has been merged!"
+          else
+            echo "Unhandled event type. Exiting."
+            exit 0
+          fi
+
+          REPO_NAME=$(echo $REPO_FULL_NAME | cut -d'/' -f2)
+          MESSAGE=$(jq -n \
+            --arg repo "$REPO_NAME" \REPO_NAME
+            --arg number "$PR_NUMBER" \
+            --arg title "$PR_TITLE" \
+            --arg url "$PR_URL" \
+            --arg action "$ACTION_TEXT" \
+            '{content: "\($repo) > [PR #\($number): \($title)](\($url)) \($action)"}')
+
+          # Send the notification to Discord
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "$MESSAGE" \
+            "$DISCORD_WEBHOOK"
