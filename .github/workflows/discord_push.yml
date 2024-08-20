@@ -46,7 +46,7 @@ jobs:
             --arg commit_title "$COMMIT_TITLE" \
             --arg commit_url "$COMMIT_URL" \
             --arg icon ":devcommit:" \
-            '{content: "\($icon) \($repo) > Direct push to \($branch_name): [\($commit_title)](\($commit_url))"}')
+            '{content: "\\\($icon) \($repo) > Direct push to \($branch_name): [\($commit_title)](\($commit_url))"}')
 
           # Send the notification to Discord
           curl -H "Content-Type: application/json" \
