@@ -44,12 +44,12 @@ jobs:
           elif [[ "${{ github.event.action }}" == "synchronize" ]]; then
             ACTION_ICON="<:devpropened:1275356590316322858>"
             ACTION_TEXT="has been updated!"
-          elif [[ "${{ github.event.action }}" == "closed" ]]; then
-            ACTION_ICON="<:devprclosed:1275356586218356776>"
-            ACTION_TEXT="has been closed!"
           elif [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
             ACTION_ICON="<:devprmerged:1275356589284393021>"
             ACTION_TEXT="has been merged!"
+          elif [[ "${{ github.event.action }}" == "closed" ]]; then
+            ACTION_ICON="<:devprclosed:1275356586218356776>"
+            ACTION_TEXT="has been closed!"
           else
             echo "Unhandled event type. Exiting."
             exit 0
