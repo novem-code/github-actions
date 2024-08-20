@@ -39,10 +39,16 @@ jobs:
         run: |
           # Determine the message based on the event type
           if [[ "${{ github.event.action }}" == "opened" ]]; then
+            ACTION_ICON=":devpropened:"
             ACTION_TEXT="has been opened. Please review!"
           elif [[ "${{ github.event.action }}" == "synchronize" ]]; then
+            ACTION_ICON=":devpropened:"
             ACTION_TEXT="has been updated!"
+          elif [[ "${{ github.event.action }}" == "closed" ]]; then
+            ACTION_ICON=":devprclosed:"
+            ACTION_TEXT="has been closed!"
           elif [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            ACTION_ICON=":devprmerged:"
             ACTION_TEXT="has been merged!"
           else
             echo "Unhandled event type. Exiting."
@@ -55,8 +61,9 @@ jobs:
             --arg number "$PR_NUMBER" \
             --arg title "$PR_TITLE" \
             --arg url "$PR_URL" \
+            --arg icon "$ACTION_ICON" \
             --arg action "$ACTION_TEXT" \
-            '{content: "\($repo) > [PR #\($number): \($title)](\($url)) \($action)"}')
+            '{content: "\($icon) \($repo) > [PR #\($number): \($title)](\($url)) \($action)"}')
 
           # Send the notification to Discord
           curl -H "Content-Type: application/json" \
