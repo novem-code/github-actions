@@ -19,7 +19,7 @@ jobs:
       pr_url: ${{ github.event.pull_request.html_url }}
       repo_full_name: ${{ github.repository }}
     secrets:
-      discord_webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}{
+      discord_webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   notify_push:
     uses: ./.github/workflows/discord_push.yml
