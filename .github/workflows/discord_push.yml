@@ -7,7 +7,7 @@ on:
         description: 'Branch name'
         type: string
         required: false
-        default: 'main'
+        default: 'refs/heads/main'
       commit_message:
         description: 'Commit message'
         type: string
@@ -30,9 +30,23 @@ jobs:
   notify_push:
     runs-on: ubuntu-latest
     steps:
+      - name: Input check
+        id: input_check
+        run: |
+          GITHUB_REF="${{ inputs.branch_name }}"
+          echo "branch_name=${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
+
+          COMMITTER_EMAIL="$(git show --pretty="format:%ce" --no-patch "$GITHUB_REF")"
+          if [[ "$COMMITTER_EMAIL" != "noreply@github.com" ]]; then
+            echo "is_direct_commit=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_direct_commit=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Send push notification to Discord
+        if: steps.input_check.outputs.is_direct_commit == 'true'
         env:
-          BRANCH_NAME: ${{ inputs.branch_name }}
+          BRANCH_NAME: ${{ steps.input_check.outputs.branch_name }}
           COMMIT_MESSAGE: ${{ inputs.commit_message }}
           COMMIT_URL: ${{ inputs.commit_url }}
           REPO_FULL_NAME: ${{ inputs.repo_full_name }}
