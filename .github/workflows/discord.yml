@@ -23,9 +23,9 @@ jobs:
 
   notify_push:
     uses: ./.github/workflows/discord_push.yml
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'Merge pull request')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     with:
-      branch_name: 'main'
+      branch_name: ${{ github.ref }}
       commit_message: ${{ github.event.head_commit.message }}
       commit_url: ${{ github.event.head_commit.url }}
       repo_full_name: ${{ github.repository }}
