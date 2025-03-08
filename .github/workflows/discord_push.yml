@@ -33,9 +33,9 @@ jobs:
       - name: Input check
         id: input_check
         run: |
-          GITHUB_REF="${{ inputs.branch_name }}"
+          GITHUB_REF='${{ inputs.branch_name }}'
           echo "branch_name=${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
-          COMMIT_MSG="${{ inputs.commit_message }}"
+          COMMIT_MSG='${{ inputs.commit_message }}'
           if [[ ! $COMMIT_MSG =~ \(#[0-9]+\)$ ]]; then
             echo "is_direct_commit=true" >> $GITHUB_OUTPUT
           else
