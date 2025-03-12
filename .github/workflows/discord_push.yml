@@ -37,7 +37,8 @@ jobs:
           COMMIT_MSG: ${{ inputs.commit_message }}
         run: |
           echo "branch_name=${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
-          if [[ ! $COMMIT_MSG =~ \(#[0-9]+\)$ ]]; then
+          COMMIT_TITLE="$(echo "$COMMIT_MESSAGE" | head -1)"
+          if [[ ! $COMMIT_TITLE =~ \(#[0-9]+\)$ ]]; then
             echo "is_direct_commit=true" >> $GITHUB_OUTPUT
           else
             echo "is_direct_commit=false" >> $GITHUB_OUTPUT
