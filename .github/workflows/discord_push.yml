@@ -34,7 +34,7 @@ jobs:
         id: input_check
         env:
           GITHUB_REF: ${{ inputs.branch_name }}
-          COMMIT_MSG: ${{ inputs.commit_message }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
         run: |
           echo "branch_name=${GITHUB_REF//refs\/heads\//}" >> $GITHUB_OUTPUT
           COMMIT_TITLE="$(echo "$COMMIT_MESSAGE" | head -1)"
