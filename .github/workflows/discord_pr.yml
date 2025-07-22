@@ -19,6 +19,10 @@ on:
         description: 'Repo full name'
         type: string
         required: true
+      pr_draft:
+        description: 'PR draft status'
+        type: boolean
+        required: true
     secrets:
       discord_webhook:
         description: 'Discord webhook URL'
@@ -35,15 +39,24 @@ jobs:
           PR_NUMBER: ${{ inputs.pr_number }}
           PR_URL: ${{ inputs.pr_url }}
           REPO_FULL_NAME: ${{ inputs.repo_full_name }}
+          PR_DRAFT: ${{ inputs.pr_draft }}
           DISCORD_WEBHOOK: ${{ secrets.discord_webhook }}
         run: |
-          # Determine the message based on the event type
+          # Determine the message based on the event type and draft status
           if [[ "${{ github.event.action }}" == "opened" ]]; then
+            if [[ "$PR_DRAFT" == "true" ]]; then
+              ACTION_ICON="📝"
+              ACTION_TEXT="draft has been opened."
+            else
+              ACTION_ICON="<:devpropened:1275356590316322858>"
+              ACTION_TEXT="has been opened. Please review!"
+            fi
+          elif [[ "${{ github.event.action }}" == "ready_for_review" ]]; then
             ACTION_ICON="<:devpropened:1275356590316322858>"
-            ACTION_TEXT="has been opened. Please review!"
-          elif [[ "${{ github.event.action }}" == "synchronize" ]]; then
-            ACTION_ICON="<:devpropened:1275356590316322858>"
-            ACTION_TEXT="has been updated!"
+            ACTION_TEXT="is ready for review!"
+          elif [[ "${{ github.event.action }}" == "converted_to_draft" ]]; then
+            ACTION_ICON="📝"
+            ACTION_TEXT="has been converted to draft."
           elif [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
             ACTION_ICON="<:devprmerged:1275356589284393021>"
             ACTION_TEXT="has been merged!"
