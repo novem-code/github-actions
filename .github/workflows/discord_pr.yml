@@ -77,7 +77,7 @@ jobs:
             --arg url "$PR_URL" \
             --arg icon "$ACTION_ICON" \
             --arg action "$ACTION_TEXT" \
-            '{content: "\($icon) \($repo) > [PR #\($number): \($title)](\($url)) \($action)"}')
+            '{content: "\($icon) \($repo) > [PR #\($number): \($title)](<\($url)>) \($action)"}')
 
           # Send the notification to Discord
           curl -H "Content-Type: application/json" \
