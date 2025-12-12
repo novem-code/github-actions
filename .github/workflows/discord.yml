@@ -1,4 +1,6 @@
 name: Discord PR Notification
+permissions:
+  contents: read
 
 on:
   pull_request:
