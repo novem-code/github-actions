@@ -1,4 +1,5 @@
 name: Discord PR Notification
+permissions: {}
 
 on:
   workflow_call:
