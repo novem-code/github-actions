@@ -1,4 +1,5 @@
 name: Discord Push Notification
+permissions: {}
 
 on:
   workflow_call:
