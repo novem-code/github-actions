@@ -1,0 +1,58 @@
+name: 'Discord notify'
+description: >-
+  POST one message to a Discord webhook, honouring the rate limit and failing
+  loudly when the message never lands.
+
+inputs:
+  webhook-url:
+    description: >-
+      The Discord webhook URL. A composite action cannot declare `secrets:`, so
+      the caller passes the secret in as this input, reading it from
+      secrets.DISCORD_WEBHOOK_URL at its own call site. Masking is by value, so
+      it stays redacted crossing the boundary. This text names that context
+      without the expression wrapper on purpose: the runner evaluates input
+      descriptions too, so writing it out here fails the manifest before the
+      action ever runs.
+    required: true
+  content:
+    description: >-
+      Message text. The action JSON-encodes it, so quotes, backslashes and
+      newlines are safe without the caller reaching for jq. Give exactly one
+      of `content` or `payload`.
+    required: false
+    default: ''
+  payload:
+    description: >-
+      A complete Discord webhook JSON object, for embeds and anything
+      `content` cannot express. Give exactly one of `content` or `payload`.
+    required: false
+    default: ''
+  fail-on-undeliverable:
+    description: >-
+      Whether a message that never lands fails the step. Leave `true` when
+      sending the message IS the job — nothing else records that it vanished.
+      Set `false` in an `if: failure()` notifier, where a red step would be
+      read as the failure it was reporting. The `::error::` annotation is
+      emitted either way, so the loss is on the run summary regardless.
+    required: false
+    default: 'true'
+
+outputs:
+  delivered:
+    description: '"true" when Discord accepted the message, "false" when it never landed.'
+    value: ${{ steps.send.outputs.delivered }}
+
+runs:
+  using: composite
+  steps:
+    # Everything crosses into the script through env, never through `${{ }}`
+    # interpolated into the shell body — a PR title is attacker-controlled text
+    # and must not be able to become code.
+    - id: send
+      shell: bash
+      env:
+        DISCORD_WEBHOOK_URL: ${{ inputs.webhook-url }}
+        DISCORD_CONTENT: ${{ inputs.content }}
+        DISCORD_PAYLOAD: ${{ inputs.payload }}
+        DISCORD_FAIL_ON_UNDELIVERABLE: ${{ inputs.fail-on-undeliverable }}
+      run: '"$GITHUB_ACTION_PATH/discord-notify.sh"'
