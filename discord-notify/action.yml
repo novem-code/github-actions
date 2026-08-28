@@ -55,4 +55,7 @@ runs:
         DISCORD_CONTENT: ${{ inputs.content }}
         DISCORD_PAYLOAD: ${{ inputs.payload }}
         DISCORD_FAIL_ON_UNDELIVERABLE: ${{ inputs.fail-on-undeliverable }}
-      run: '"$GITHUB_ACTION_PATH/discord-notify.sh"'
+      # Invoked through `bash` rather than executed directly: the self-hosted
+      # runners are NixOS, where bash is not on PATH, so the script's
+      # `#!/usr/bin/env bash` cannot resolve an interpreter and exec fails 127.
+      run: bash "$GITHUB_ACTION_PATH/discord-notify.sh"
