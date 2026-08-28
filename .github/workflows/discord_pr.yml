@@ -35,17 +35,21 @@ jobs:
   notify_pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Send PR notification to Discord
+      - name: Compose the message
+        id: compose
         env:
           PR_TITLE: ${{ inputs.pr_title }}
           PR_NUMBER: ${{ inputs.pr_number }}
           PR_URL: ${{ inputs.pr_url }}
           REPO_FULL_NAME: ${{ inputs.repo_full_name }}
           PR_DRAFT: ${{ inputs.pr_draft }}
-          DISCORD_WEBHOOK: ${{ secrets.discord_webhook }}
+          # Through env, not interpolated into the body: a PR title is
+          # attacker-controlled text and must not be able to become shell.
+          EVENT_ACTION: ${{ github.event.action }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
         run: |
           # Determine the message based on the event type and draft status
-          if [[ "${{ github.event.action }}" == "opened" ]]; then
+          if [[ "$EVENT_ACTION" == "opened" ]]; then
             if [[ "$PR_DRAFT" == "true" ]]; then
               ACTION_ICON="📝"
               ACTION_TEXT="draft has been opened."
@@ -53,35 +57,44 @@ jobs:
               ACTION_ICON="<:devpropened:1275356590316322858>"
               ACTION_TEXT="has been opened. Please review!"
             fi
-          elif [[ "${{ github.event.action }}" == "ready_for_review" ]]; then
+          elif [[ "$EVENT_ACTION" == "ready_for_review" ]]; then
             ACTION_ICON="<:devpropened:1275356590316322858>"
             ACTION_TEXT="is ready for review!"
-          elif [[ "${{ github.event.action }}" == "converted_to_draft" ]]; then
+          elif [[ "$EVENT_ACTION" == "converted_to_draft" ]]; then
             ACTION_ICON="📝"
             ACTION_TEXT="has been converted to draft."
-          elif [[ "${{ github.event.pull_request.merged }}" == "true" ]]; then
+          elif [[ "$PR_MERGED" == "true" ]]; then
             ACTION_ICON="<:devprmerged:1275356589284393021>"
             ACTION_TEXT="has been merged!"
-          elif [[ "${{ github.event.action }}" == "closed" ]]; then
+          elif [[ "$EVENT_ACTION" == "closed" ]]; then
             ACTION_ICON="<:devprclosed:1275356586218356776>"
             ACTION_TEXT="has been closed!"
           else
             echo "Unhandled event type. Exiting."
+            echo "send=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          REPO_NAME=$(echo $REPO_FULL_NAME | cut -d'/' -f2)
-          MESSAGE=$(jq -n \
-            --arg repo "$REPO_NAME" \
-            --arg number "$PR_NUMBER" \
-            --arg title "$PR_TITLE" \
-            --arg url "$PR_URL" \
-            --arg icon "$ACTION_ICON" \
-            --arg action "$ACTION_TEXT" \
-            '{content: "\($icon) \($repo) > [PR #\($number): \($title)](<\($url)>) \($action)"}')
+          REPO_NAME=${REPO_FULL_NAME#*/}
+          CONTENT="$ACTION_ICON $REPO_NAME > [PR #$PR_NUMBER: $PR_TITLE](<$PR_URL>) $ACTION_TEXT"
 
-          # Send the notification to Discord
-          curl -H "Content-Type: application/json" \
-            -X POST \
-            -d "$MESSAGE" \
-            "$DISCORD_WEBHOOK"
+          # Random delimiter: a title cannot be allowed to close the heredoc
+          # and inject further outputs.
+          delim="EOF_${RANDOM}${RANDOM}"
+          {
+            printf 'content<<%s\n' "$delim"
+            printf '%s\n' "$CONTENT"
+            printf '%s\n' "$delim"
+            printf 'send=true\n'
+          } >> "$GITHUB_OUTPUT"
+
+      # The action retries a rate-limited webhook and exits non-zero if the
+      # message never lands. Sending it is this workflow's whole purpose, so
+      # that failure is allowed to redden the run — nothing else would record
+      # that the notification vanished.
+      - name: Send PR notification to Discord
+        if: steps.compose.outputs.send == 'true'
+        uses: novem-code/github-actions/discord-notify@fafee578aaffda8dc645f0f3d36b4d5464252d87
+        with:
+          webhook-url: ${{ secrets.discord_webhook }}
+          content: ${{ steps.compose.outputs.content }}

@@ -45,27 +45,33 @@ jobs:
             echo "is_direct_commit=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Send push notification to Discord
+      - name: Compose the message
+        id: compose
         if: steps.input_check.outputs.is_direct_commit == 'true'
         env:
           BRANCH_NAME: ${{ steps.input_check.outputs.branch_name }}
           COMMIT_MESSAGE: ${{ inputs.commit_message }}
           COMMIT_URL: ${{ inputs.commit_url }}
           REPO_FULL_NAME: ${{ inputs.repo_full_name }}
-          DISCORD_WEBHOOK: ${{ secrets.discord_webhook }}
         run: |
-          REPO_NAME=$(echo $REPO_FULL_NAME | cut -d'/' -f2)
-          COMMIT_TITLE="$(echo "$COMMIT_MESSAGE" | head -1)"
-          MESSAGE=$(jq -n \
-            --arg repo "$REPO_NAME" \
-            --arg branch_name "$BRANCH_NAME" \
-            --arg commit_title "$COMMIT_TITLE" \
-            --arg commit_url "$COMMIT_URL" \
-            --arg icon "<:devcommit:1275358039884435517>" \
-            '{content: "\($icon) \($repo) > Direct push to \($branch_name): [\($commit_title)](<\($commit_url)>)"}')
+          REPO_NAME=${REPO_FULL_NAME#*/}
+          COMMIT_TITLE="$(printf '%s\n' "$COMMIT_MESSAGE" | head -1)"
+          CONTENT="<:devcommit:1275358039884435517> $REPO_NAME > Direct push to $BRANCH_NAME: [$COMMIT_TITLE](<$COMMIT_URL>)"
 
-          # Send the notification to Discord
-          curl -H "Content-Type: application/json" \
-            -X POST \
-            -d "$MESSAGE" \
-            "$DISCORD_WEBHOOK"
+          # Random delimiter: a commit title cannot be allowed to close the
+          # heredoc and inject further outputs.
+          delim="EOF_${RANDOM}${RANDOM}"
+          {
+            printf 'content<<%s\n' "$delim"
+            printf '%s\n' "$CONTENT"
+            printf '%s\n' "$delim"
+          } >> "$GITHUB_OUTPUT"
+
+      # Sending the message is this workflow's whole purpose, so an
+      # undeliverable one is allowed to redden the run.
+      - name: Send push notification to Discord
+        if: steps.input_check.outputs.is_direct_commit == 'true'
+        uses: novem-code/github-actions/discord-notify@fafee578aaffda8dc645f0f3d36b4d5464252d87
+        with:
+          webhook-url: ${{ secrets.discord_webhook }}
+          content: ${{ steps.compose.outputs.content }}
