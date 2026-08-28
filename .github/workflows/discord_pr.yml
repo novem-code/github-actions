@@ -94,7 +94,7 @@ jobs:
       # that the notification vanished.
       - name: Send PR notification to Discord
         if: steps.compose.outputs.send == 'true'
-        uses: novem-code/github-actions/discord-notify@fafee578aaffda8dc645f0f3d36b4d5464252d87
+        uses: novem-code/github-actions/discord-notify@d9a94f342c5cdacb85f91a2f30d0000004f6ca73
         with:
           webhook-url: ${{ secrets.discord_webhook }}
           content: ${{ steps.compose.outputs.content }}
