@@ -6,9 +6,13 @@ description: >-
 inputs:
   webhook-url:
     description: >-
-      The Discord webhook URL. A composite action cannot declare `secrets:`,
-      so pass the secret straight in: `webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}`.
-      Masking is by value, so it stays redacted in logs.
+      The Discord webhook URL. A composite action cannot declare `secrets:`, so
+      the caller passes the secret in as this input, reading it from
+      secrets.DISCORD_WEBHOOK_URL at its own call site. Masking is by value, so
+      it stays redacted crossing the boundary. This text names that context
+      without the expression wrapper on purpose: the runner evaluates input
+      descriptions too, so writing it out here fails the manifest before the
+      action ever runs.
     required: true
   content:
     description: >-
