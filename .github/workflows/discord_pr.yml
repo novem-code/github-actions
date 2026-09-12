@@ -57,6 +57,17 @@ jobs:
               ACTION_ICON="<:devpropened:1275356590316322858>"
               ACTION_TEXT="has been opened. Please review!"
             fi
+          elif [[ "$EVENT_ACTION" == "reopened" ]]; then
+            # Draft-aware like `opened` above: a PR can be reopened while it is
+            # still a draft, and saying "please review" about a draft is the
+            # thing the split exists to avoid.
+            if [[ "$PR_DRAFT" == "true" ]]; then
+              ACTION_ICON="📝"
+              ACTION_TEXT="draft has been reopened."
+            else
+              ACTION_ICON="<:devpropened:1275356590316322858>"
+              ACTION_TEXT="has been reopened. Please review!"
+            fi
           elif [[ "$EVENT_ACTION" == "ready_for_review" ]]; then
             ACTION_ICON="<:devpropened:1275356590316322858>"
             ACTION_TEXT="is ready for review!"
@@ -70,7 +81,11 @@ jobs:
             ACTION_ICON="<:devprclosed:1275356586218356776>"
             ACTION_TEXT="has been closed!"
           else
-            echo "Unhandled event type. Exiting."
+            # A warning, not just a log line: this branch is how `reopened`
+            # stayed broken for a fortnight after consumers started sending it.
+            # The job still succeeds — a missing message must not fail someone
+            # else's pipeline — but the run now says which action it dropped.
+            echo "::warning::discord_pr: no message for event action '$EVENT_ACTION'; nothing sent"
             echo "send=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
