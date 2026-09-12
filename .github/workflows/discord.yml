@@ -11,9 +11,23 @@ on:
   push:
     branches:
       - main
+  # This repo supplies every other repo's notifications and had none for its
+  # own issues, so one filed here reached nobody.
+  issues:
+    types:
+      - opened
+      - closed
+      - reopened
 
 jobs:
+  # Gated on the event, which it did not need to be while only pull_request
+  # and push fired this file: on a push `github.event.action` is empty and the
+  # composer's else branch drops the message. An issue is different — its
+  # action is literally `opened`, which the composer's first branch matches, so
+  # without this an issue would post a PR notification with an empty title and
+  # number.
   notify_pr:
+    if: github.event_name == 'pull_request'
     uses: ./.github/workflows/discord_pr.yml
     with:
       pr_title: ${{ github.event.pull_request.title }}
@@ -33,6 +47,27 @@ jobs:
       repo_full_name: ${{ github.repository }}
     secrets:
       discord_webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Inline rather than a fourth reusable workflow: a reusable workflow here is
+  # an interface other repos pin, and adding one is a bigger decision than
+  # this repo notifying itself. gaia keeps its own issue notifier inline for
+  # the same reason.
+  notify_issue:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notify Discord of the issue
+        uses: ./discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: >-
+            ${{ github.event.action == 'opened' && 'ℹ️' ||
+                github.event.action == 'reopened' && '🔁' || '✅' }}
+            ${{ github.event.repository.name }} >
+            [#${{ github.event.issue.number }}: ${{ github.event.issue.title }}](<${{ github.event.issue.html_url }}>)
+            ${{ github.event.action == 'opened' && 'was opened.' ||
+                github.event.action == 'reopened' && 'was reopened.' || 'was closed.' }}
 
   dummy:
     runs-on: ubuntu-latest
